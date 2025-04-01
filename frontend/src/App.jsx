@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import './App.css'
 import {BrowserRouter,Route, Routes} from "react-router-dom"; 
-import Register from '../components/Register';
-import Login from '../components/Login';
-import Dashboard from '../components/Dashboard.jsx';
-import Home from '../components/Home.jsx';
-import ChessGame from '../components/ChessGame.jsx';
-import About from '../components/About.jsx';
-import Rules from '../components/Rules.jsx';
+import Register from "./components/Register";
+import Login from "./components/Login";
+import Dashboard from "./components/Dashboard";
+import Home from "./components/Home";
+import ChessGame from "./components/ChessGame";
+import About from "./components/About";
+import Rules from "./components/Rules";
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
