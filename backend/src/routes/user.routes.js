@@ -3,7 +3,7 @@ import { app } from "../app.js"
 import { loginuser, register,logoutuser, getAllUsers, getUserById} from "../controllers/user.controller.js"
 import { asyncHandler } from "../utils/asynchandler.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
-const router=express()
+const router = express.Router()
 
 router.route("/register").post(register)
 router.route("/loginuser").post(loginuser)
