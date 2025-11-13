@@ -137,7 +137,7 @@ function Login() {
                                 Register
                             </button>
                             <button
-                                onClick={() => navigate("/")}
+                                onClick={() => navigate("/register")}
                                 className="flex items-center justify-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all"
                             >
                                 <Home className="h-4 w-4 mr-2" />

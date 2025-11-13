@@ -1,18 +1,26 @@
-// routes/message.routes.js
-
 import express from "express";
 import {
     sendUserMessage,
     replyByBot,
     getConversation,
-    getAllMessages
+    getAllMessages,
+    sendAsAdmin,
+    getAllUserConversations,
+    getUserConversationForAdmin
 } from "../controllers/message.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/send", sendUserMessage);          // User sends message
-router.post("/bot-reply", replyByBot);          // Bot replies to user message
-router.get("/user/:userId", getConversation);   // Fetch all for user
-router.get("/all", getAllMessages);             // Admin fetches all
+// User routes
+router.post("/send", verifyJWT, sendUserMessage);
+router.post("/bot-reply", verifyJWT, replyByBot);
+router.get("/conversation", verifyJWT, getConversation);
+
+// Admin routes
+router.post("/send-as-admin", verifyJWT, sendAsAdmin);
+router.get("/all", verifyJWT, getAllMessages);
+router.get("/admin/conversations", verifyJWT, getAllUserConversations);
+router.get("/admin/user/:userId", verifyJWT, getUserConversationForAdmin);
 
 export default router;

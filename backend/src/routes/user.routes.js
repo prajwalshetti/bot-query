@@ -1,21 +1,28 @@
-import express from "express"
-import { app } from "../app.js"
-import { loginuser, register,logoutuser, getAllUsers, getUserById} from "../controllers/user.controller.js"
-import { asyncHandler } from "../utils/asynchandler.js"
-import { verifyJWT } from "../middlewares/auth.middleware.js"
-const router = express.Router()
+import express from "express";
+import { loginuser, register, logoutuser, getAllUsers, getUserById } from "../controllers/user.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
-router.route("/register").post(register)
-router.route("/loginuser").post(loginuser)
-router.route("/logoutuser").post(verifyJWT,logoutuser)
-router.route("/getAllUsers").get(getAllUsers)
-router.route("/getUserById/:id").get(getUserById)
+const router = express.Router();
 
-router.route("/checkForVerifyJWT").get(verifyJWT,async (req, res) => {
+router.route("/register").post(register);
+router.route("/loginuser").post(loginuser);
+router.route("/logoutuser").post(verifyJWT, logoutuser);
+router.route("/getAllUsers").get(getAllUsers);
+router.route("/getUserById/:id").get(getUserById);
+
+// Add this new route
+router.route("/me").get(verifyJWT, async (req, res) => {
+    return res.status(200).json({
+        success: true,
+        user: req.user,
+    });
+});
+
+router.route("/checkForVerifyJWT").get(verifyJWT, async (req, res) => {
     return res.status(200).json({
         message: "You have access to this protected route!",
-        user: req.user, // The authenticated user data will be available here
+        user: req.user,
     });
-})
+});
 
-export default router
+export default router;
