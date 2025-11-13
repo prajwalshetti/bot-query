@@ -24,17 +24,12 @@ function NavBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-1">
-            <NavItem to="/dashboard" end>
+            <NavItem to="/" end>
               <Home className="w-4 h-4" />
               <span>Home</span>
             </NavItem>
-
-            <NavItem to="/dashboard/rules">
-              <BookOpen className="w-4 h-4" />
-              <span>Rules</span>
-            </NavItem>
             
-            <NavItem to="/dashboard/about">
+            <NavItem to="/about">
               <Info className="w-4 h-4" />
               <span>About</span>
             </NavItem>

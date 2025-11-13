@@ -5,19 +5,17 @@ import Register from "./components/Register";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import Home from "./components/Home";
-import ChessGame from "./components/ChessGame";
+import Adminpage from "./components/Adminpage.jsx";
 import About from "./components/About";
-import Rules from "./components/Rules";
 function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route path="/" element={<Register />} />
+        <Route path="register/" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/chessGame" element={<ChessGame />} />
-        <Route path="/dashboard" element={<Dashboard />}>
+        <Route path="/adminpage" element={<Adminpage />} />
+        <Route path="/" element={<Dashboard />}>
           <Route index element={<Home />} />
-          <Route path="rules" element={<Rules />} /> 
           <Route path="about" element={<About />} /> 
         </Route>
       </Routes>
