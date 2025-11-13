@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import userData from "./userdata.json"; // Import your CSV data
 
 function Adminpage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -18,7 +19,20 @@ function Adminpage() {
   const [replyInput, setReplyInput] = useState("");
   const [loading, setLoading] = useState(false);
   
+  // CSV Analysis state (NEW)
+  const [csvUsers, setCsvUsers] = useState([]);
+  const [selectedCsvUser, setSelectedCsvUser] = useState(null);
+  const [csvAnalysis, setCsvAnalysis] = useState({});
+  const [analyzingUserId, setAnalyzingUserId] = useState(null);
+  const [showCsvPanel, setShowCsvPanel] = useState(false);
+  
   const chatRef = useRef(null);
+
+  // Load CSV user IDs on mount
+  useEffect(() => {
+    const userIds = Object.keys(userData);
+    setCsvUsers(userIds);
+  }, []);
 
   // Handle secret code submission
   const handleSecretCodeSubmit = (e) => {
@@ -63,6 +77,7 @@ function Adminpage() {
   // Handle user selection
   const handleUserSelect = (userId) => {
     fetchUserConversation(userId);
+    setShowCsvPanel(false); // Close CSV panel when viewing live chat
   };
 
   // Send admin reply
@@ -90,6 +105,39 @@ function Adminpage() {
       alert("Failed to send reply");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Analyze single CSV user on demand (NEW)
+  const handleAnalyzeSingleUser = async (userId) => {
+    // If already analyzed, just expand it
+    if (csvAnalysis[userId]) {
+      setSelectedCsvUser(selectedCsvUser === userId ? null : userId);
+      return;
+    }
+
+    setAnalyzingUserId(userId);
+    setSelectedCsvUser(userId);
+    
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/v1/messages/admin/analyze-single-csv-user",
+        { 
+          userId,
+          messages: userData[userId]
+        },
+        { withCredentials: true }
+      );
+      
+      setCsvAnalysis(prev => ({
+        ...prev,
+        [userId]: response.data.analysis
+      }));
+    } catch (error) {
+      console.error("Failed to analyze user:", error);
+      alert("Failed to analyze user: " + (error.response?.data?.error || error.message));
+    } finally {
+      setAnalyzingUserId(null);
     }
   };
 
@@ -166,80 +214,163 @@ function Adminpage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <button
+            onClick={() => {
+              setShowCsvPanel(!showCsvPanel);
+              setSelectedUser(null);
+            }}
+            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {showCsvPanel ? "Live Chat" : "CSV Analysis"}
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-120px)]">
-          {/* User List Panel */}
+          {/* Left Panel - User List or CSV Users */}
           <div className="lg:col-span-1 bg-gray-800 rounded-lg p-4 flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">User Conversations</h2>
+            {!showCsvPanel ? (
+              <>
+                <h2 className="text-xl font-semibold mb-4">Live User Conversations</h2>
 
-            {/* Search and Sort */}
-            <div className="mb-4 space-y-2">
-              <div className="relative">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search users..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <button
-                onClick={handleSortToggle}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                {sortByUrgency ? "Sort by Time" : "Sort by Urgency"}
-              </button>
-            </div>
-
-            {/* User List */}
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {filteredConversations.length === 0 && (
-                <p className="text-gray-400 text-center mt-4">No conversations found</p>
-              )}
-              {filteredConversations.map((conv) => (
-                <div
-                  key={conv.userId}
-                  onClick={() => handleUserSelect(conv.userId)}
-                  className={`p-3 rounded-lg cursor-pointer transition ${
-                    selectedUser?._id === conv.userId
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold">{conv.username}</span>
-                    {conv.urgencyScore > 0 && (
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          conv.urgencyScore >= 4
-                            ? "bg-red-500"
-                            : conv.urgencyScore >= 3
-                            ? "bg-yellow-500"
-                            : "bg-green-500"
-                        }`}
-                      >
-                        Urgency: {conv.urgencyScore}
-                      </span>
-                    )}
+                {/* Search and Sort */}
+                <div className="mb-4 space-y-2">
+                  <div className="relative">
+                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search users..."
+                      className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
-                  <p className="text-sm text-gray-300 truncate">{conv.latestMessage}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {conv.messageCount} messages
-                  </p>
+
+                  <button
+                    onClick={handleSortToggle}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    {sortByUrgency ? "Sort by Time" : "Sort by Urgency"}
+                  </button>
                 </div>
-              ))}
-            </div>
+
+                {/* User List */}
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {filteredConversations.length === 0 && (
+                    <p className="text-gray-400 text-center mt-4">No conversations found</p>
+                  )}
+                  {filteredConversations.map((conv) => (
+                    <div
+                      key={conv.userId}
+                      onClick={() => handleUserSelect(conv.userId)}
+                      className={`p-3 rounded-lg cursor-pointer transition ${
+                        selectedUser?._id === conv.userId
+                          ? "bg-blue-600"
+                          : "bg-gray-700 hover:bg-gray-600"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold">{conv.username}</span>
+                        {conv.urgencyScore > 0 && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${
+                              conv.urgencyScore >= 4
+                                ? "bg-red-500"
+                                : conv.urgencyScore >= 3
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
+                            }`}
+                          >
+                            Urgency: {conv.urgencyScore}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-300 truncate">{conv.latestMessage}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {conv.messageCount} messages
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* CSV Users Panel */}
+                <h2 className="text-xl font-semibold mb-4">CSV Users Analysis</h2>
+                <p className="text-sm text-gray-400 mb-4">
+                  Click on any user to analyze their messages ({csvUsers.length} users)
+                </p>
+                
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {csvUsers.map((userId) => (
+                    <div key={userId} className="bg-gray-700 rounded-lg overflow-hidden">
+                      {/* User Header - Clickable */}
+                      <button
+                        onClick={() => handleAnalyzeSingleUser(userId)}
+                        disabled={analyzingUserId === userId}
+                        className="w-full p-3 text-left flex justify-between items-center hover:bg-gray-600 transition disabled:opacity-50"
+                      >
+                        <div className="flex-1">
+                          <span className="font-semibold">User ID: {userId}</span>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {userData[userId].length} messages
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {analyzingUserId === userId && (
+                            <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full" />
+                          )}
+                          {csvAnalysis[userId] && (
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              csvAnalysis[userId].urgencyScore >= 4 ? "bg-red-500" :
+                              csvAnalysis[userId].urgencyScore >= 3 ? "bg-yellow-500" :
+                              "bg-green-500"
+                            }`}>
+                              {csvAnalysis[userId].urgencyScore}/5
+                            </span>
+                          )}
+                          <svg className={`w-4 h-4 transition-transform ${selectedCsvUser === userId ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+                      
+                      {/* Expanded Content */}
+                      {selectedCsvUser === userId && csvAnalysis[userId] && (
+                        <div className="p-4 bg-gray-800 border-t border-gray-600">
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-400 mb-1">Recent Messages:</p>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {userData[userId].slice(0, 3).map((msg, idx) => (
+                                <p key={idx} className="text-xs text-gray-300 bg-gray-900 p-2 rounded">
+                                  [{msg.timestamp}] {msg.message.substring(0, 80)}...
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="bg-gray-900 p-3 rounded">
+                            <p className="text-xs text-gray-400 mb-2 font-semibold">AI Suggested Response:</p>
+                            <p className="text-sm text-gray-200 leading-relaxed">{csvAnalysis[userId].suggestedResponse}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Chat Panel */}
+          {/* Right Panel - Chat or Info */}
           <div className="lg:col-span-2 bg-gray-800 rounded-lg flex flex-col">
             {selectedUser ? (
               <>
@@ -309,8 +440,15 @@ function Adminpage() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-400">
-                <p>Select a user to view conversation</p>
+              <div className="flex-1 flex items-center justify-center text-gray-400 flex-col gap-4">
+                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p className="text-lg">
+                  {showCsvPanel 
+                    ? "Select a CSV user to analyze their messages" 
+                    : "Select a user to view conversation"}
+                </p>
               </div>
             )}
           </div>

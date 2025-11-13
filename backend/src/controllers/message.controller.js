@@ -1,6 +1,7 @@
 import { Message } from "../models/message.model.js";
 import { User } from "../models/user.model.js";
 import geminiSuggest from "../utils/geminiSuggest.js";
+import geminiAnalyzeSingleUser from "../utils/geminiAnalyzeSingleUser.js"; // ✅ CHANGED
 
 // 1. Save message from user
 export const sendUserMessage = async (req, res) => {
@@ -25,6 +26,7 @@ export const sendUserMessage = async (req, res) => {
         res.status(500).json({ error: "Failed to send message" });
     }
 };
+
 
 // 2. Bot replies based on user's message
 export const replyByBot = async (req, res) => {
@@ -61,6 +63,7 @@ export const replyByBot = async (req, res) => {
     }
 };
 
+
 // 3. Get conversation for logged-in user
 export const getConversation = async (req, res) => {
     try {
@@ -76,6 +79,7 @@ export const getConversation = async (req, res) => {
     }
 };
 
+
 // 4. Get all messages for admin
 export const getAllMessages = async (req, res) => {
     try {
@@ -88,6 +92,7 @@ export const getAllMessages = async (req, res) => {
         res.status(500).json({ error: "Failed to fetch all messages" });
     }
 };
+
 
 // 5. Admin sends a message to a specific user
 export const sendAsAdmin = async (req, res) => {
@@ -115,6 +120,7 @@ export const sendAsAdmin = async (req, res) => {
         res.status(500).json({ error: "Failed to send admin message" });
     }
 };
+
 
 // 6. Get all users with their latest message and urgency
 export const getAllUserConversations = async (req, res) => {
@@ -152,6 +158,7 @@ export const getAllUserConversations = async (req, res) => {
     }
 };
 
+
 // 7. Get specific user's conversation for admin
 export const getUserConversationForAdmin = async (req, res) => {
     try {
@@ -174,5 +181,36 @@ export const getUserConversationForAdmin = async (req, res) => {
     } catch (error) {
         console.error("Error in getUserConversationForAdmin:", error);
         res.status(500).json({ error: "Failed to fetch user conversation" });
+    }
+};
+
+
+// 8. Analyze single CSV user (on-demand)
+export const analyzeSingleCsvUser = async (req, res) => {
+    try {
+        const { userId, messages } = req.body;
+        
+        if (!userId || !messages) {
+            return res.status(400).json({ 
+                error: "userId and messages are required" 
+            });
+        }
+        
+        console.log(`Analyzing single user: ${userId}`);
+        
+        // Call Gemini for this one user
+        const analysis = await geminiAnalyzeSingleUser(userId, messages);
+        
+        res.status(200).json({ 
+            success: true,
+            analysis
+        });
+        
+    } catch (error) {
+        console.error("Error in analyzeSingleCsvUser:", error);
+        res.status(500).json({ 
+            error: "Failed to analyze user",
+            details: error.message 
+        });
     }
 };
