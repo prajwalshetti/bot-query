@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Home() {
   const [messages, setMessages] = useState([]);
@@ -7,6 +8,7 @@ function Home() {
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
   const chatRef = useRef(null);
+  const navigate = useNavigate();
 
   // Fetch current user
   useEffect(() => {
@@ -20,6 +22,7 @@ function Home() {
       } catch (error) {
         console.error("Failed to fetch user:", error);
         alert("Please login first");
+        navigate('/login');
       }
     };
     fetchUser();
